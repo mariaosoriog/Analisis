@@ -1,0 +1,343 @@
+/*--------------- 1ra Area: Codigo de Usuario -----------------------*/
+//------::= importaciones, paquetes
+package ProyectoCompilador.Compilador.Analizadores;
+import ProyectoCompilador.Compilador.Clases.GestionLenguaje;
+import java_cup.runtime.Symbol;
+import java.util.LinkedList;
+
+//-----::= Codigo para el parser,variables, metodos
+parser code
+{:
+    public String resultado="";
+    public static LinkedList<TError> TablaES = new LinkedList<TError>();
+    public GestionLenguaje gestion = new GestionLenguaje(); 
+
+    //Metodo al que se llama automaticamente ante algun error sintactico
+    public void syntax_error(Symbol s)
+    {        
+        String lexema = s.value.toString();
+        int fila = s.right;
+        int columna = s.left;
+        
+        System.out.println("!!!!!!! Error Sintactico Recuperado !!!!!!!");
+        System.out.println("\t\tLexema: "+lexema);
+        System.out.println("\t\tFila: "+fila);
+        System.out.println("\t\tColumna: "+columna);
+
+        TError datos = new TError(lexema,fila,columna,"Error Sintactico","Caracter no esperado");
+        TablaES.add(datos);
+       
+        
+    }
+
+    //Metodo al que se llama en el momento en que ya no es posible una recuperacion de errores
+    public void unrecovered_syntax_error(Symbol s) throws java.lang.Exception
+    {        
+        String lexema = s.value.toString();
+        int fila = s.right;
+        int columna = s.left;
+        
+        System.out.println("!!!!!!! Error Sintactico, Panic Mode !!!!!!! ");
+        System.out.println("\t\tLexema: "+lexema);
+        System.out.println("\t\tFila: "+fila);
+        System.out.println("\t\tColumna: "+columna);
+
+        TError datos = new TError(lexema,fila,columna,"Error Sintactico","Caracter no esperado");
+        TablaES.add(datos);
+     
+    }
+:}
+
+//-----::= Codigo para las acciones gramaticales
+action code
+{:
+:}
+
+/*--------------- 2da Area: Declaraciones -----------------------*/
+//-----::= declaracion de terminales 
+terminal String tsuma,
+                tresta,
+                tmultiplicar,
+                tdivision,
+                tprogram,
+                tprincipal,
+                tllabre,
+                tllcierra,
+                tasignar,
+                tid,
+                tmenorque,
+                tmenorigual,
+                tmayorque,
+                tmayorigual,
+                tdiferente,
+                tigual,
+                tvar,
+                tboolean,
+                tint,
+                tfloat,
+                tchar,
+                tstring,
+                tcoma,
+                tcoabre,
+                tcocierra,
+                tpcoma,
+                tif,
+                tpabre,
+                tpcierra,
+                tthen,
+                telse,
+                tendif,
+                tcase,
+                tof,
+                tendcase,
+                tdpuntos,
+                tdefault,
+                tand,
+                tor,
+                tnot,
+                tbreak,
+                tfor,
+                tdo,
+                tendfor,
+                tto,
+                tdownto,
+                tinc,
+                twhile,
+                tendwhile,
+                trepeat,
+                tuntil,
+                tfunction,
+                treturn,
+                tentrada,
+                tentradasalida,
+                tsalida,
+                tprocedure,
+                tcall;
+
+terminal String tdnumber,
+                tdnumberfloat,
+                tdboolean,
+                tdchar,
+                tdstring,
+                tdcomentario;
+
+//-----::= declaracion de no terminales
+non terminal String S,
+                    PROGRAM,
+                    IOPERATIONS,
+                    PROGRAM_OPERATIONS,
+                    OPERATIONS,
+                    SINGLE_OPERATIONS,
+                    INSTRUCTION,
+                    ASIGN,
+                    ID,
+                    OPT_VALUES,
+                    DATO,
+                    NUMBER,
+                    NUMBERFLOAT,
+                    BOOL,
+                    CHAR,
+                    STRING,
+                    COMMENT,
+                    VARDEFS,
+                    TYPE,
+                    MULTIVAR,
+                    ARRAY,
+                    PARAMETERSARRAY,
+                    MULTIARRAY,
+                    VALUES,
+                    OPERA,
+                    OPERAMATH,
+                    OPERARELATION,
+                    ARRAY_LOCATION,
+                    CONDITIONAL,
+                    IF,
+                    SWITCH,
+                    CONDITIONS,
+                    ELSE,
+                    CASES,
+                    DEFAULT,
+                    RELATIONALCONDITION,
+                    LOGICOPERATION,
+                    OPERALOGIC,
+                    CICLE,
+                    FOR,
+                    WHILE,
+                    REPEAT,
+                    FORPARAMETERS,
+                    INC,
+                    PROGRAM_BLOCK,
+                    BLOCKS,
+                    FUNCTION,
+                    PROCEDURE,
+                    SINGLE_BLOCK,
+                    PARAMETERS,
+                    SETPARAMETER,
+                    PARAMETER,
+                    MODE,
+                    RETURN,
+                    CALL,
+                    CALLPARAMETERS,
+                    MULTIVALUES;
+
+//---::= precedencia de menor a mayor 
+precedence left tsuma, tresta;
+precedence left tmultiplicar, tdivision;
+
+start with S;
+
+/*--------------- 3ra Area: Reglas Semanticas -----------------------*/
+S::= PROGRAM:a {: gestion.analizarCodigo(a);:};
+
+PROGRAM::= tprogram tprincipal tllabre PROGRAM_OPERATIONS:a tllcierra PROGRAM_BLOCK:b {:RESULT = gestion.mainBuilder(a,b);:} ;
+
+PROGRAM_OPERATIONS::= OPERATIONS:a {:RESULT = a;:}|{:RESULT = "";:} ;
+
+OPERATIONS::= INSTRUCTION:a OPERATIONS:b    {:RESULT = a+""+b;:} |
+              CONDITIONAL:a OPERATIONS:b    {:RESULT = a+""+b;:} |
+              CICLE:a OPERATIONS:b          {:RESULT = a+""+b;:} |
+              SINGLE_OPERATIONS:a           {:RESULT = a;:};
+
+SINGLE_OPERATIONS::= INSTRUCTION:a {:RESULT = a;:}|
+                     CONDITIONAL:a {:RESULT = a;:}|
+                     CICLE:a       {:RESULT = a;:}; 
+
+INSTRUCTION::=  ASIGN:a     {:RESULT = a;:}|
+                COMMENT:a   {:RESULT = a;:}|
+                VARDEFS:a   {:RESULT = a;:}|
+                CALL:a      {:RESULT = a;:};
+
+CALL::= tcall ID:a tpabre CALLPARAMETERS:b tpcierra tpcoma  {:RESULT = gestion.llamadoMetodos(a,b);:};
+
+CALLPARAMETERS::= VALUES:a MULTIVALUES:b {:RESULT = a+""+b;:}|{:RESULT = "";:};
+
+MULTIVALUES::= tpcoma VALUES:a MULTIVALUES:b {:RESULT = ","+a+b;:} | {:RESULT = "";:};
+
+COMMENT::= tdcomentario:a   {:RESULT = "//"+a.replace("%","")+"\n";:};
+
+ASIGN::= ID:a ARRAY_LOCATION:b tasignar OPT_VALUES:c {:RESULT = gestion.asignacionDeVariables(a,b,c);:};
+
+ARRAY_LOCATION::= tcoabre VALUES:a tcocierra ARRAY_LOCATION:b   {:RESULT = "["+a+"]"+b;:} |
+                                                                {:RESULT = "";:};
+
+ID::= tid:a {: RESULT = a; :};
+
+OPT_VALUES::= IOPERATIONS:a {:RESULT = a;:};
+
+DATO::= NUMBER:a        {:RESULT = a;:}|
+        NUMBERFLOAT:a   {:RESULT = a;:}|
+        BOOL:a          {:RESULT = a;:}|
+        CHAR:a          {:RESULT = a;:}|
+        STRING:a        {:RESULT = a;:};
+
+NUMBER::= tdnumber:a            {: RESULT = a; :};
+
+NUMBERFLOAT::= tdnumberfloat:a  {: RESULT = a.replace(",",".")+"f"; :};
+
+BOOL::= tdboolean:a             {: RESULT = a.toLowerCase(); :};
+
+CHAR::= tdchar:a                {: RESULT = a; :};
+
+STRING::= tdstring:a            {: RESULT = a; :};
+
+IOPERATIONS::=  VALUES:a OPERA:b IOPERATIONS:c {:RESULT = a+b+c;:}|
+                VALUES:a {:RESULT = a;:}|
+                CALL:a {:RESULT = a;:};
+
+OPERA::= OPERAMATH:a {:RESULT = a;:}|OPERARELATION:a {:RESULT = a;:};
+
+OPERAMATH::=    tsuma:a {:RESULT = a;:}|
+                tresta:a {:RESULT = a;:}|
+                tmultiplicar:a {:RESULT = a;:}|
+                tdivision:a {:RESULT = a;:};
+
+OPERARELATION::=    tmenorque:a {:RESULT = a;:}|
+                    tmenorigual:a {:RESULT = a;:}|
+                    tmayorque:a {:RESULT = a;:}|
+                    tmayorigual:a {:RESULT = a;:}|
+                    tdiferente:a {:RESULT = a;:}|
+                    tigual:a {:RESULT = a;:};
+
+VALUES::=   DATO:a {: RESULT = a; :}|
+            ID:a {: RESULT = a; :};
+
+VARDEFS::= tvar TYPE:a ID:b MULTIVAR:c tpcoma {:RESULT = gestion.definicionDeVariables(a,b,c);:};
+
+TYPE::= tboolean:a ARRAY:b  {:RESULT = a+""+b ;:}|
+        tint:a ARRAY:b      {:RESULT = a+""+b ;:}|
+        tfloat:a ARRAY:b    {:RESULT = a+""+b ;:}|
+        tchar:a ARRAY:b     {:RESULT = a+""+b ;:}|
+        tstring:a ARRAY:b   {:RESULT = "String"+b ;:};
+
+MULTIVAR::= tcoma ID:a MULTIVAR:b {:String c=(b!=null)?","+a+b:","+a; RESULT = c ;:} | {:RESULT = "";:};
+
+ARRAY::= tcoabre PARAMETERSARRAY:a tcocierra {:RESULT = "["+a+"]";:} |{:RESULT = "";:};
+
+PARAMETERSARRAY::= NUMBER:a MULTIARRAY:b {:RESULT = a+b;:};
+
+MULTIARRAY::= tpcoma NUMBER:a MULTIARRAY:b {:String c=(b!=null)?","+a+b:","+a; RESULT = c ;:}|;
+
+CONDITIONAL::=  IF:a        {:RESULT = a;:}|
+                SWITCH:a    {:RESULT = a;:};
+
+IF::= tif tpabre CONDITIONS:a tpcierra tthen PROGRAM_OPERATIONS:b ELSE:c tendif {:RESULT = gestion.ifProccess(a,b,c);:};
+
+CONDITIONS::= RELATIONALCONDITION:a LOGICOPERATION:b {:RESULT = a+" "+b;:};
+
+RELATIONALCONDITION::=  VALUES:a OPERARELATION:b VALUES:c {:RESULT = a+" "+b+" "+c;:}|
+                        VALUES:a OPERALOGIC:b VALUES:c    {:RESULT = a+" "+b+" "+c;:};
+
+LOGICOPERATION::= OPERALOGIC:a RELATIONALCONDITION:b LOGICOPERATION:c {:RESULT = a+" "+b+" "+c;:}| {:RESULT = "";:};
+
+OPERALOGIC::=   tand:a  {:RESULT = a;:}|
+                tor:a   {:RESULT = a;:}|
+                tnot:a  {:RESULT = a;:};
+
+ELSE::= telse PROGRAM_OPERATIONS:a  {:RESULT = a;:}|;
+
+SWITCH::= tcase ID:a tof  CASES:b tendcase {:RESULT = gestion.casesProccess(a,b);:};
+
+CASES::= DATO:a tdpuntos PROGRAM_OPERATIONS:b tbreak CASES:c    {:RESULT = gestion.caseProccess(a,b) + c;:} |
+         DATO:a tdpuntos PROGRAM_OPERATIONS:b tbreak            {:RESULT = gestion.caseProccess(a,b);:}|
+         DEFAULT:a                                              {:RESULT = a;:};
+
+DEFAULT::= tdefault tdpuntos PROGRAM_OPERATIONS:a tbreak {:RESULT = gestion.defaultProccess(a);:};
+
+CICLE::=    FOR:a       {:RESULT= a;:}|
+            WHILE:a     {:RESULT= a;:}|
+            REPEAT:a    {:RESULT= a;:};
+
+FOR::=  tfor tpabre FORPARAMETERS:a tpcierra tdo PROGRAM_OPERATIONS:b tendfor {:RESULT = gestion.forProccess(a,b);:};
+
+FORPARAMETERS::=    ASIGN:a tto VALUES:b INC:c    {:RESULT= gestion.forParameterProccess(a,b,c);:}|
+                    ASIGN:a tdownto NUMBER:b    {:RESULT= gestion.forParameterProccess(a,b);:}; 
+
+INC::=  tinc tpabre NUMBER:a tpcierra    {:RESULT= a;:}| {:RESULT= "";:};
+
+WHILE::= twhile tpabre CONDITIONS:a tpcierra tdo PROGRAM_OPERATIONS:b tendwhile  {:RESULT= gestion.whileProccess(a,b);:};
+
+REPEAT::= trepeat PROGRAM_OPERATIONS:a tuntil tpabre CONDITIONS:b tpcierra  {:RESULT= gestion.repetProccess(b,a);:};
+
+PROGRAM_BLOCK::= BLOCKS:a {:RESULT= a;:}|{:RESULT= "";:};
+
+BLOCKS::=   FUNCTION:a BLOCKS:b     {:RESULT= a+b;:}|
+            PROCEDURE:a BLOCKS:b    {:RESULT= a+b;:}|
+            SINGLE_BLOCK:a          {:RESULT= a;:};
+
+SINGLE_BLOCK::= FUNCTION:a  {:RESULT= a;:}|
+                PROCEDURE:a {:RESULT= a;:};
+
+FUNCTION::= TYPE:a tfunction ID:b tpabre PARAMETERS:c tpcierra tllabre PROGRAM_OPERATIONS:d RETURN:e tllcierra {:RESULT = gestion.functionBuilder(a,b,c,d,e); :};
+
+PARAMETERS::= SETPARAMETER:a PARAMETER:b {:RESULT = a+b;:}|{:RESULT = "";:};
+
+SETPARAMETER::= MODE TYPE:a ID:b {:RESULT = a+" "+b;:};
+
+MODE::= tentrada | tsalida  | tentradasalida;
+
+PARAMETER::= tcoma SETPARAMETER:a PARAMETER:b {:RESULT = ","+a+b;:} |{:RESULT = "";:};
+
+RETURN::= treturn VALUES:a {:RESULT = a;:};
+
+PROCEDURE::= tprocedure ID:a tpabre PARAMETERS:b tpcierra tllabre PROGRAM_OPERATIONS:c tllcierra {:RESULT = gestion.procedureBuilder(a,b,c); :};
+
